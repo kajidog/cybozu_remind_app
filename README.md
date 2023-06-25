@@ -29,12 +29,12 @@ Slackでサイボウズのスケジュールを表示や予定時間の前にリ
 
 <img src="./doc/リマインド通知.png" width="500" >  
 
-時間になるとDMで通知が来ます。
+時間になるとDMで通知が来ます。  
 
 ## 環境構築方法
 
-1. slack_botを作成
-*./manifest.yml* である程度作成できます。
+1. slack_botを作成  
+*./manifest.yml* である程度作成できます。  
 （SLACK_APP_TOKENだけ手動で設定）
 <img src="./doc/slack_app.png" width="500" >  
 
@@ -51,7 +51,7 @@ make up
 
 以上
 
-.env
+.env  
 
 ```env
 SLACK_BOT_TOKEN=<SLACK_BOT_TOKEN>

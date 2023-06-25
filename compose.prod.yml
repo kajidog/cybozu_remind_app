@@ -1,0 +1,21 @@
+version: "3"
+services:
+  app:
+    container_name: app_bolt
+    build: ./.docker/bolt
+    working_dir: /app
+    volumes:
+      - ./content:/app
+    command: npm run start
+    restart: always
+    environment:
+      TZ: Asia/Tokyo
+      SLACK_BOT_TOKEN: ${SLACK_BOT_TOKEN}
+      SLACK_APP_TOKEN: ${SLACK_APP_TOKEN}
+      PRIVATE_KEY_DECRYPTION_PASSPHRASE: ${PRIVATE_KEY_DECRYPTION_PASSPHRASE}
+      BASIC_USER: ${BASIC_USER}
+      BASIC_PASS: ${BASIC_PASS}
+      CYBOZU_URL1: ${CYBOZU_URL1}
+      CYBOZU_URL2: ${CYBOZU_URL2}
+      CYBOZU_UID: ${CYBOZU_UID}
+      CYBOZU_PASS: ${CYBOZU_PASS}

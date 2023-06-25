@@ -44,6 +44,7 @@ Slackでサイボウズのスケジュールを表示や予定時間の前にリ
 git clone このリポジトリのURL
 cd remind_cybozu_app
 make init
+cp .env.example .env
 vim .env
 make up
 ```

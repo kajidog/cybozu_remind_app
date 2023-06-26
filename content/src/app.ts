@@ -14,7 +14,12 @@ import { sendHomeTab } from "./slack";
 import { addZabbixServerModal } from "./template";
 import { StringIndexed } from "@slack/bolt/dist/types/helpers";
 import { getCybozuConfig } from "./cybozu_user_config";
-import { getScheduleConfig, loadSchedule, setScheduleConfig } from "./schedule";
+import {
+  deleteSelectedDate,
+  getScheduleConfig,
+  loadSchedule,
+  setScheduleConfig,
+} from "./schedule";
 import { getSchedules } from "./getSchedules";
 import {
   createRemindKey,
@@ -48,28 +53,6 @@ app.action("click_none_1", async (e) => {
 app.action("click_none_2", async (e) => {
   e.ack();
 });
-
-const MenuAction: {
-  [key: string]: (
-    e: SlackActionMiddlewareArgs<BlockOverflowAction> &
-      AllMiddlewareArgs<StringIndexed>
-  ) => void;
-} = {
-  cybozu_config_edit: (e) => {
-    e.client.views.open({
-      trigger_id: e.body["trigger_id"],
-      view: {
-        type: "modal",
-        callback_id: "submit_cybozu_config_edit",
-        title: { type: "plain_text", text: "設定編集" },
-        submit: { type: "plain_text", text: "保存" },
-        close: { type: "plain_text", text: "キャンセル" },
-        blocks: addZabbixServerModal(getCybozuConfig(e.body.user.id)?.uid),
-      },
-    });
-    return;
-  },
-};
 
 app.action<BlockOverflowAction>("set_remind", async (e) => {
   e.ack();
@@ -108,6 +91,31 @@ app.action<BlockOverflowAction>("set_remind", async (e) => {
   sendHomeTab(e, e.body.user.id);
   return;
 });
+
+const MenuAction: {
+  [key: string]: (
+    e: SlackActionMiddlewareArgs<BlockOverflowAction> &
+      AllMiddlewareArgs<StringIndexed>
+  ) => void;
+} = {
+  cybozu_config_edit: (e) => {
+    e.client.views.open({
+      trigger_id: e.body["trigger_id"],
+      view: {
+        type: "modal",
+        callback_id: "submit_cybozu_config_edit",
+        title: { type: "plain_text", text: "設定編集" },
+        submit: { type: "plain_text", text: "保存" },
+        close: { type: "plain_text", text: "キャンセル" },
+        blocks: addZabbixServerModal(getCybozuConfig(e.body.user.id)?.uid),
+      },
+    });
+    return;
+  },
+  delete_selected_date: (e) => {
+    deleteSelectedDate(e.body.user.id);
+  },
+};
 
 app.action<BlockOverflowAction>("menu_select", async (e) => {
   console.table(e.payload);

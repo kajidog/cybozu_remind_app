@@ -123,8 +123,8 @@ export const getSchedules = async (
           return element.getAttribute("href");
         });
 
-        eventData["href"] = href || "不明";
-        eventData["title"] = title || "不明";
+        href && (eventData["href"] = href);
+        eventData["title"] = title || "";
       }
       saveData[key][save_date].push(eventData);
     }

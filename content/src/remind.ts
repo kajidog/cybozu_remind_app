@@ -10,14 +10,14 @@ export const setRemind = (slackId: string, saveData: any, addKey: string) => {
     Number(saveData[addKey]["remind_at"]),
     () => {
       console.log("done-remind");
-      deleteRemind(slackId, addKey);
       console.table(saveData[addKey]);
 
       const { blocks, title } = createRemindBlocks(saveData[addKey]);
 
       sendMessageWithBlock(slackId, blocks, "リマインド: " + title);
     },
-    slackId + addKey
+    slackId,
+    addKey
   );
 
   if (res === -1) {
@@ -44,7 +44,7 @@ export const getRemind = (slack_id: string) => {
 };
 
 export const deleteRemind = (slack_id: string, key: string) => {
-  cancelSchedule(slack_id + key);
+  cancelSchedule(slack_id, key);
   let data = getRemind("*");
   delete data[slack_id]?.[key];
   writeJSONFile(CONFIG_FILENAME, data);
@@ -64,37 +64,45 @@ export const createRemindKey = (
 let timerMap: Map<string, NodeJS.Timeout> = new Map();
 
 // スケジュール設定関数
-function setSchedule(unixTime: number, callback: () => void, id: string) {
+function setSchedule(
+  unixTime: number,
+  callback: () => void,
+  slack_id: string,
+  id: string
+) {
+  const ID = slack_id + id;
   const currentTime = Math.floor(Date.now() / 1000); // 現在のUnixTimeを取得
   const delay = (unixTime - currentTime) * 1000; // 遅延時間をミリ秒で計算
 
   if (delay < 0) {
     console.log("The specified UnixTime has already passed");
+
+    deleteRemind(slack_id, id);
     return -1;
   }
 
-  if (isSetSchedule("", id)) {
+  if (isSetSchedule(slack_id, id)) {
     console.log("reschedule: ", id);
-
-    cancelSchedule(id);
+    cancelSchedule(slack_id, id);
   }
 
-  console.log("delay: ", id, unixTime, delay);
+  console.log("delay: ", ID, unixTime, delay);
 
   // スケジュールを設定し、タイマーIDをMapに保存
   const timerId = setTimeout(callback, delay);
-  timerMap.set(id, timerId);
+  timerMap.set(ID, timerId);
   return 0;
 }
 
 // スケジュールキャンセル関数
-function cancelSchedule(id: string): void {
-  const timerId = timerMap.get(id);
+function cancelSchedule(slackId: string, id: string): void {
+  const ID = slackId + id;
+  const timerId = timerMap.get(ID);
   if (timerId) {
     clearTimeout(timerId); // スケジュールをキャンセル
-    timerMap.delete(id); // Mapから該当のタイマーIDを削除
+    timerMap.delete(ID); // Mapから該当のタイマーIDを削除
   } else {
-    console.log(`No schedule found with id: ${id}`);
+    console.log(`No schedule found with id: ${ID}`);
   }
 }
 export const isSetSchedule = (slackId: string, key: string) => {
@@ -114,7 +122,8 @@ export const setAllRemind = () => {
           console.table({ blocks, title, slackId });
           sendMessageWithBlock(slackId, blocks, "リマインド: " + title);
         },
-        slackId + id
+        slackId,
+        id
       );
     });
   });

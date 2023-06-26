@@ -47,9 +47,8 @@ export const createSchedule = (slack_id: string) => {
       },
     ],
   });
-  const [year, month, date] = (
-    config.selected_date || getFormattedDate()
-  ).split("-");
+  const selected_date = config.selected_date || getFormattedDate();
+  const [year, month, date] = selected_date.split("-");
 
   // 指定の日付でスケジュールをロード
   const schedules = loadSchedule(cybozuConfig.uid, year, month);
@@ -69,7 +68,7 @@ export const createSchedule = (slack_id: string) => {
 
     const title = schedule.title || "タイトル";
     const remind = isSetSchedule(slack_id, remindKey)
-      ? `リマインド: ${moment(
+      ? ` :hourglass_flowing_sand: ${moment(
           unixTimestampToDate(reminds[remindKey]["remind_at"])
         ).format("llll")}`
       : "";
@@ -90,13 +89,7 @@ export const createSchedule = (slack_id: string) => {
               text: "5分前にリマインド",
               emoji: true,
             },
-            value:
-              "5-" +
-              index +
-              "-" +
-              config.selected_date +
-              "-" +
-              cybozuConfig.uid,
+            value: "5-" + index + "-" + selected_date + "-" + cybozuConfig.uid,
           },
           {
             text: {
@@ -104,13 +97,7 @@ export const createSchedule = (slack_id: string) => {
               text: "15分前にリマインド",
               emoji: true,
             },
-            value:
-              "15-" +
-              index +
-              "-" +
-              config.selected_date +
-              "-" +
-              cybozuConfig.uid,
+            value: "15-" + index + "-" + selected_date + "-" + cybozuConfig.uid,
           },
           {
             text: {
@@ -118,13 +105,7 @@ export const createSchedule = (slack_id: string) => {
               text: "30分前にリマインド",
               emoji: true,
             },
-            value:
-              "30-" +
-              index +
-              "-" +
-              config.selected_date +
-              "-" +
-              cybozuConfig.uid,
+            value: "30-" + index + "-" + selected_date + "-" + cybozuConfig.uid,
           },
           // {
           //   text: {
@@ -136,7 +117,7 @@ export const createSchedule = (slack_id: string) => {
           //     "select-" +
           //     index +
           //     "-" +
-          //     config.selected_date +
+          //     selected_date +
           //     "-" +
           //     cybozuConfig.uid,
           // },
@@ -147,12 +128,7 @@ export const createSchedule = (slack_id: string) => {
               emoji: true,
             },
             value:
-              "delete-" +
-              index +
-              "-" +
-              config.selected_date +
-              "-" +
-              cybozuConfig.uid,
+              "delete-" + index + "-" + selected_date + "-" + cybozuConfig.uid,
           },
         ],
       },
@@ -163,7 +139,7 @@ export const createSchedule = (slack_id: string) => {
       elements: [
         {
           type: "mrkdwn",
-          text: "時間:" + time,
+          text: ":date: " + time,
         },
       ] as any[],
     };
@@ -238,8 +214,9 @@ export const createSchedule = (slack_id: string) => {
         text:
           "更新: " +
           getTimeAgo(schedules.update_at) +
-          " - " +
-          moment(schedules.update_at).format("llll"),
+          " [" +
+          moment(schedules.update_at).format("llll") +
+          "]",
       },
     });
   }
@@ -295,6 +272,14 @@ export const createSelectClientCybozuConfig = (user: string) => {
             },
             value: "cybozu_config_edit",
           },
+          {
+            text: {
+              type: "plain_text",
+              text: "日付指定を解除",
+              emoji: true,
+            },
+            value: "delete_selected_date",
+          },
         ],
         action_id: "menu_select",
       },
@@ -314,13 +299,13 @@ function getTimeAgo(date: Date): string {
   const days = Math.floor(hours / 24); // 経過時間（日単位）
 
   if (days > 0) {
-    return `${days}日前`;
+    return `${days}日前 :warning: `;
   } else if (hours > 0) {
     return `${hours}時間前`;
   } else if (minutes > 0) {
     return `${minutes}分前`;
   } else {
-    return `${seconds}秒前`;
+    return `${seconds}秒前 :white_check_mark: `;
   }
 }
 

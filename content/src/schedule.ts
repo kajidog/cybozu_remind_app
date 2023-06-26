@@ -3,23 +3,31 @@ import { readJSONFile, writeJSONFile } from "./fs";
 const CONFIG_FILENAME = "schedule.json";
 const SCHEDULE_FILENAME = "event.json";
 
-export const getScheduleConfig = (cybozuUid: string) => {
+export const getScheduleConfig = (slackId: string) => {
   const schedules = readJSONFile(CONFIG_FILENAME);
-  if (!schedules.data[cybozuUid]) {
+  if (!schedules.data[slackId]) {
     return {};
   }
-  return schedules.data[cybozuUid] || {};
+  return schedules.data[slackId] || {};
 };
 
-export const setScheduleConfig = (cybozuUid: string, data: any) => {
+export const setScheduleConfig = (slackId: string, data: any) => {
   let tokens = readJSONFile(CONFIG_FILENAME);
 
-  tokens.data[cybozuUid] = data;
+  tokens.data[slackId] = data;
   writeJSONFile(CONFIG_FILENAME, tokens.data);
 
-  return getScheduleConfig(cybozuUid);
+  return getScheduleConfig(slackId);
 };
 
+export const deleteSelectedDate = (slackId: string) => {
+  let tokens = readJSONFile(CONFIG_FILENAME);
+
+  if (tokens.data[slackId]?.["selected_date"]) {
+    delete tokens.data[slackId]["selected_date"];
+  }
+  writeJSONFile(CONFIG_FILENAME, tokens.data);
+};
 export const loadSchedule = (
   cybozuUid: string,
   year: string,

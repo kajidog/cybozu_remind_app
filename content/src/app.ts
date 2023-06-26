@@ -5,15 +5,19 @@ import {
   BlockButtonAction,
   BlockDatepickerAction,
   BlockOverflowAction,
+  BlockStaticSelectAction,
   KnownBlock,
   LogLevel,
   SlackActionMiddlewareArgs,
 } from "@slack/bolt";
-import { setCybozuConfig } from "./cybozu_user_config";
+import {
+  deleteSelectHost,
+  setSelectHost,
+  setToken,
+} from "./cybozu_user_config";
 import { sendHomeTab } from "./slack";
 import { addZabbixServerModal } from "./template";
 import { StringIndexed } from "@slack/bolt/dist/types/helpers";
-import { getCybozuConfig } from "./cybozu_user_config";
 import {
   deleteSelectedDate,
   getScheduleConfig,
@@ -107,13 +111,16 @@ const MenuAction: {
         title: { type: "plain_text", text: "設定編集" },
         submit: { type: "plain_text", text: "保存" },
         close: { type: "plain_text", text: "キャンセル" },
-        blocks: addZabbixServerModal(getCybozuConfig(e.body.user.id)?.uid),
+        blocks: addZabbixServerModal(),
       },
     });
     return;
   },
   delete_selected_date: (e) => {
     deleteSelectedDate(e.body.user.id);
+  },
+  delete_host: (e) => {
+    deleteSelectHost(e.body.user.id);
   },
 };
 
@@ -149,6 +156,14 @@ app.action<BlockDatepickerAction>("set_selected_date", async (e) => {
   e.ack();
 });
 
+app.action<BlockStaticSelectAction>("select_zabbix_host", async (e) => {
+  console.log("select");
+
+  setSelectHost(e.body.user.id, e.payload.selected_option.value);
+  sendHomeTab(e, e.body.user.id);
+  e.ack();
+});
+
 (async () => {
   await app.start();
   setAllRemind();
@@ -156,11 +171,13 @@ app.action<BlockDatepickerAction>("set_selected_date", async (e) => {
 })();
 
 app.view("submit_cybozu_config_edit", async (e) => {
-  const { cybozu_uid } = e.view.state.values;
+  const { cybozu_uid, friendly_name } = e.view.state.values;
   const user = e.body.user.id;
   const uid = extractNumbersFromString(cybozu_uid.cybozu_uid.value);
+  const name = friendly_name.friendly_name.value;
   if (uid.length) {
-    setCybozuConfig(user, { uid: cybozu_uid.cybozu_uid.value });
+    setSelectHost(user, uid);
+    setToken(user, uid, { name, uid });
   }
 
   sendHomeTab(e, user);

@@ -1,6 +1,5 @@
-import { getCybozuConfig } from "./cybozu_user_config";
+import { getHosts, getSelectHost, getTokenByUser } from "./cybozu_user_config";
 import { getScheduleConfig, loadSchedule } from "./schedule";
-import { getSchedules } from "./getSchedules";
 import moment from "moment";
 import { createRemindKey, getRemind, isSetSchedule } from "./remind";
 moment.locale("ja");
@@ -22,7 +21,7 @@ export const sendHomeTab = async (e: any, user: string) => {
 };
 
 export const createSchedule = (slack_id: string) => {
-  const cybozuConfig = getCybozuConfig(slack_id);
+  const cybozuConfig = getTokenByUser(slack_id);
   if (!cybozuConfig?.uid) {
     return [];
   }
@@ -251,15 +250,17 @@ export const createSchedule = (slack_id: string) => {
   return blocks;
 };
 export const createSelectClientCybozuConfig = (user: string) => {
-  const cybozuConfig = getCybozuConfig(user);
+  const { name, uid } = getTokenByUser(user);
+  const hosts = mapHosts(user);
   const menu: { [key: string]: any }[] = [
     {
       type: "section",
       text: {
         type: "mrkdwn",
-        text: cybozuConfig
-          ? `*サイボウズUID: ${cybozuConfig?.uid}*`
-          : "使用するにはサイボウズのUIDを設定してください",
+        text:
+          name || uid
+            ? `*${name || "uid: " + uid}* のスケジュールを表示してます`
+            : "使用するにはサイボウズユーザーを登録してください",
       },
       accessory: {
         type: "overflow",
@@ -267,18 +268,10 @@ export const createSelectClientCybozuConfig = (user: string) => {
           {
             text: {
               type: "plain_text",
-              text: "サイボウズUID設定",
+              text: "サイボウズユーザーを登録",
               emoji: true,
             },
             value: "cybozu_config_edit",
-          },
-          {
-            text: {
-              type: "plain_text",
-              text: "日付指定を解除",
-              emoji: true,
-            },
-            value: "delete_selected_date",
           },
         ],
         action_id: "menu_select",
@@ -286,7 +279,59 @@ export const createSelectClientCybozuConfig = (user: string) => {
     },
   ];
 
+  if (uid) {
+    menu[0].accessory.options.push({
+      text: {
+        type: "plain_text",
+        text: `:wastebasket: ${name || uid} の設定を削除`,
+        emoji: true,
+      },
+      value: `delete_host`,
+    });
+    menu[0].accessory.options.push({
+      text: {
+        type: "plain_text",
+        text: ":date: 日付指定を解除",
+        emoji: true,
+      },
+      value: "delete_selected_date",
+    });
+  }
+
+  const temp: { [key: string]: any } = {
+    type: "actions",
+    elements: [
+      {
+        type: "static_select",
+        placeholder: {
+          type: "plain_text",
+          emoji: true,
+          text: "表示ユーザーを変更",
+        },
+        options: hosts,
+        action_id: "select_zabbix_host",
+      },
+    ],
+  };
+
+  if (hosts.length > 0) {
+    menu.push(temp);
+  }
+
   return menu;
+};
+
+// ドロップダウンリストのアイテム
+const mapHosts = (user: string) => {
+  const hosts = getHosts(user);
+  return Object.keys(hosts).map((key) => ({
+    text: {
+      type: "plain_text",
+      emoji: true,
+      text: hosts[key].name || hosts[key].uid,
+    },
+    value: hosts[key].uid,
+  }));
 };
 
 function getTimeAgo(date: Date): string {

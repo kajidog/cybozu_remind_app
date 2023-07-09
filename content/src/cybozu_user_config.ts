@@ -8,7 +8,7 @@ const SELECT_HOSTS_FILENAME = "select_hosts.json";
 export const getToken = (slackID: string, key: string) => {
   const { data: tokens } = readJSONFile(TOKENS_FILENAME);
 
-  if (!tokens[slackID] || !tokens[slackID]?.[key]) {
+  if (!tokens["*"] || !tokens["*"]?.[key]) {
     return {};
   }
   return tokens[slackID]?.[key] || {};
@@ -19,7 +19,7 @@ export const setToken = (key: string, host: string, saveData: any) => {
   let { data: tokens } = readJSONFile(TOKENS_FILENAME);
 
   tokens[key] = {
-    ...tokens[key],
+    ...tokens["*"],
     [host]: saveData,
   };
   writeJSONFile(TOKENS_FILENAME, tokens);
@@ -64,7 +64,7 @@ export const deleteSelectHost = (user: string) => {
   let { data: selectHosts } = readJSONFile(SELECT_HOSTS_FILENAME);
   const selectHost = getSelectHost(user);
   delete selectHosts[user];
-  delete tokens[user]?.[selectHost];
+  delete tokens["*"]?.[selectHost];
   writeJSONFile(TOKENS_FILENAME, tokens);
   writeJSONFile(SELECT_HOSTS_FILENAME, selectHosts);
 };

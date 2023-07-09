@@ -253,7 +253,7 @@ export const createSchedule = (slack_id: string) => {
 };
 export const createSelectClientCybozuConfig = (user: string) => {
   const { name, uid } = getTokenByUser(user);
-  const hosts = mapHosts(user);
+  const hosts = mapHosts("*");
   const menu: { [key: string]: any }[] = [
     {
       type: "section",
@@ -326,13 +326,17 @@ export const createSelectClientCybozuConfig = (user: string) => {
 // ドロップダウンリストのアイテム
 const mapHosts = (user: string) => {
   const hosts = getHosts(user);
-  return Object.keys(hosts).map((key) => ({
+  let arr = Object.entries(hosts).map(([key, value]) => value);
+
+  // Sort the array by the 'name' property
+  arr.sort((a: any, b: any) => a?.name?.localeCompare(b?.name));
+  return arr.map((value: any) => ({
     text: {
       type: "plain_text",
       emoji: true,
-      text: hosts[key].name || hosts[key].uid,
+      text: value.name || value.uid,
     },
-    value: hosts[key].uid,
+    value: value.uid,
   }));
 };
 

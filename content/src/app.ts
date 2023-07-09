@@ -178,7 +178,7 @@ app.view("submit_cybozu_config_edit", async (e) => {
   const name = friendly_name.friendly_name.value;
   if (uid.length) {
     setSelectHost(user, uid);
-    setToken(user, uid, { name, uid });
+    setToken("*", uid, { name, uid });
   }
 
   sendHomeTab(e, user);

@@ -78,7 +78,7 @@ app.action<BlockOverflowAction>("set_remind", async (e) => {
 
   // ここからはリマインド設定
   if (!data[date]?.[Number(index)]?.["start"]) {
-    //return;
+    return;
   }
   let saveData = getRemind(e.body.user.id);
   let target_data = data[date][Number(index)];

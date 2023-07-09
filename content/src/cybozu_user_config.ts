@@ -29,7 +29,7 @@ export const setToken = (key: string, host: string, saveData: any) => {
 
 // ユーザー名から選択しているZabbixのトークンを取得
 export const getTokenByUser = (slack_id: string) => {
-  return getToken(slack_id, getSelectHost(slack_id));
+  return getToken("*", getSelectHost(slack_id));
 };
 
 // 設定したホストを取得

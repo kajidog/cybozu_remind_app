@@ -32,6 +32,7 @@ import {
   setAllRemind,
   setRemind,
 } from "./remind";
+import { getScheduleDetails } from "./getScheduleDetails";
 console.log(process.env.SLACK_APP_TOKEN);
 
 const app = new App({
@@ -136,7 +137,7 @@ app.action<BlockButtonAction>("load_cybozu", async (e) => {
   console.table(e.payload.value);
   const [uid, year, month, date] = e.payload.value.split("-");
   e.ack();
-  await getSchedules(year, month, date, uid);
+  await getScheduleDetails(year, month, date, uid);
   sendHomeTab(e, e.body.user.id);
 });
 app.action<BlockButtonAction>("reload_cybozu", async (e) => {

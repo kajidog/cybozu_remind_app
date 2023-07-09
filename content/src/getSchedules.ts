@@ -1,6 +1,7 @@
-const { chromium } = require("playwright");
+import { BrowserContext, chromium } from "playwright";
 import moment from "moment";
 import { writeJSONFile } from "./fs";
+import { getScheduleDetails } from "./getScheduleDetails";
 
 const SAVE_FILENAME = "event.json";
 
@@ -9,41 +10,12 @@ export const getSchedules = async (
   year: string,
   month: string,
   day: string,
-  uid: string
+  uid: string,
+  context: BrowserContext
 ) => {
-  const browser = await chromium.launch();
-  const context = await browser.newContext({
-    httpCredentials: {
-      username: process.env.BASIC_USER,
-      password: process.env.BASIC_PASS,
-    },
-  });
-
   // Add credentials for Basic auth
   const page = await context.newPage();
   const navigationPromise = page.waitForNavigation();
-
-  // ログイン処理
-  await page.goto(
-    process.env.CYBOZU_URL1 +
-      "ag.cgi?Page=&Group=1915&Submit=%E5%88%87%E3%82%8A%E6%9B%BF%E3%81%88%E3%82%8B"
-  );
-
-  // ユーザー選択
-  await page.selectOption(
-    "table > tbody > tr:nth-child(5) > td > .vr_loginForm",
-    process.env.CYBOZU_UID
-  );
-
-  // パスワード入力
-  await page.type(
-    "table > tbody > tr:nth-child(8) > td > .vr_loginForm",
-    process.env.CYBOZU_PASS
-  );
-
-  // ログインボタンクリック
-  await page.click("table > tbody > tr > td > .vr_hotButton");
-  await navigationPromise;
 
   const url =
     process.env.CYBOZU_URL1 +
@@ -140,5 +112,4 @@ export const getSchedules = async (
   }
 
   await context.close();
-  await browser.close();
 };

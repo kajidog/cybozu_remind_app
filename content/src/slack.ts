@@ -2,6 +2,7 @@ import { getHosts, getSelectHost, getTokenByUser } from "./cybozu_user_config";
 import { getScheduleConfig, loadSchedule } from "./schedule";
 import moment from "moment";
 import { createRemindKey, getRemind, isSetSchedule } from "./remind";
+import { loadScheduleDetails } from "./schedule_details";
 moment.locale("ja");
 
 export const sendHomeTab = async (e: any, user: string) => {
@@ -50,7 +51,7 @@ export const createSchedule = (slack_id: string) => {
   const [year, month, date] = selected_date.split("-");
 
   // 指定の日付でスケジュールをロード
-  const schedules = loadSchedule(cybozuConfig.uid, year, month);
+  const schedules = loadScheduleDetails(cybozuConfig.uid, year, month, date);
   const reminds = getRemind(slack_id);
   (schedules.data[date] || []).forEach((schedule: any, index: number) => {
     const remindKey = createRemindKey(
@@ -76,7 +77,9 @@ export const createSchedule = (slack_id: string) => {
       type: "section",
       text: {
         type: "mrkdwn",
-        text: `${schedule.type ? `*${schedule.type}:* ` : ""}*${title}*`,
+        text: `${schedule.type ? `*${schedule.type}:* ` : ""}*${title}* \n${
+          schedule["memo"] || ""
+        }`,
       },
       accessory: {
         type: "overflow",
@@ -106,20 +109,6 @@ export const createSchedule = (slack_id: string) => {
             },
             value: "30-" + index + "-" + selected_date + "-" + cybozuConfig.uid,
           },
-          // {
-          //   text: {
-          //     type: "plain_text",
-          //     text: "指定時間にリマインド",
-          //     emoji: true,
-          //   },
-          //   value:
-          //     "select-" +
-          //     index +
-          //     "-" +
-          //     selected_date +
-          //     "-" +
-          //     cybozuConfig.uid,
-          // },
           {
             text: {
               type: "plain_text",
@@ -142,6 +131,19 @@ export const createSchedule = (slack_id: string) => {
         },
       ] as any[],
     };
+
+    [
+      ["member", ":busts_in_silhouette: "],
+      ["institution", ":house_with_garden: "],
+    ].forEach(([action, emoji]) => {
+      if (schedule[action]) {
+        accessory.elements.push({
+          type: "mrkdwn",
+          text: emoji + schedule[action],
+        });
+      }
+    });
+
     if (0 < remind.length) {
       accessory.elements.push({
         type: "mrkdwn",

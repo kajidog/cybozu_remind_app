@@ -1,7 +1,8 @@
-import { readJSONFile, writeJSONFile } from "./fs";
+import { saveFile } from "../constants";
+import { readJSONFile, writeJSONFile } from "../util/fs";
 
-const CONFIG_FILENAME = "schedule.json";
-const SCHEDULE_FILENAME = "event.json";
+const CONFIG_FILENAME = saveFile.selectedDate;
+const SCHEDULE_FILENAME = saveFile.schedules;
 
 export const getScheduleConfig = (slackId: string) => {
   const schedules = readJSONFile(CONFIG_FILENAME);

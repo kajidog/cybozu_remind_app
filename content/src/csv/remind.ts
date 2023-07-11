@@ -1,8 +1,7 @@
 import { Block, KnownBlock } from "@slack/bolt";
-import { sendMessageWithBlock } from "./app";
-import { readJSONFile, writeJSONFile } from "./fs";
-
-const CONFIG_FILENAME = "remind.json";
+import { readJSONFile, writeJSONFile } from "../util/fs";
+import { sendMessageWithBlock } from "../util";
+import { saveFile } from "../constants";
 
 export const setRemind = (slackId: string, saveData: any, addKey: string) => {
   console.log("remind add: ", addKey);
@@ -24,16 +23,16 @@ export const setRemind = (slackId: string, saveData: any, addKey: string) => {
     deleteRemind(slackId, addKey);
     return;
   }
-  let { data: reminds } = readJSONFile(CONFIG_FILENAME);
+  let { data: reminds } = readJSONFile(saveFile.remind);
 
   reminds[slackId] = saveData;
-  writeJSONFile(CONFIG_FILENAME, reminds);
+  writeJSONFile(saveFile.remind, reminds);
 
   return;
 };
 
 export const getRemind = (slack_id: string) => {
-  const { data: reminds } = readJSONFile(CONFIG_FILENAME);
+  const { data: reminds } = readJSONFile(saveFile.remind);
   if (slack_id === "*") {
     return reminds;
   }
@@ -47,17 +46,7 @@ export const deleteRemind = (slack_id: string, key: string) => {
   cancelSchedule(slack_id, key);
   let data = getRemind("*");
   delete data[slack_id]?.[key];
-  writeJSONFile(CONFIG_FILENAME, data);
-};
-
-export const createRemindKey = (
-  cybozuUid: string,
-  year: string,
-  month: string,
-  date: string,
-  index: string
-) => {
-  return `${index}-${year}-${month}-${date}-${cybozuUid}`;
+  writeJSONFile(saveFile.remind, data);
 };
 
 // タイマーIDを保存するためのMap
@@ -82,7 +71,6 @@ function setSchedule(
   }
 
   if (isSetSchedule(slack_id, id)) {
-    console.log("reschedule: ", id);
     cancelSchedule(slack_id, id);
   }
 
@@ -94,7 +82,7 @@ function setSchedule(
   return 0;
 }
 
-// スケジュールキャンセル関数
+// スケジュールキャンセル
 function cancelSchedule(slackId: string, id: string): void {
   const ID = slackId + id;
   const timerId = timerMap.get(ID);
@@ -105,12 +93,13 @@ function cancelSchedule(slackId: string, id: string): void {
     console.log(`No schedule found with id: ${ID}`);
   }
 }
-export const isSetSchedule = (slackId: string, key: string) => {
-  console.log("id: ", key, timerMap.get(slackId + key));
 
+// リマインドが設定されているか確認
+export const isSetSchedule = (slackId: string, key: string) => {
   return timerMap.get(slackId + key);
 };
 
+// 設定ファイルをもとにリマインドを設定
 export const setAllRemind = () => {
   const reminds = getRemind("*");
   Object.keys(reminds).forEach((slackId) => {
@@ -119,7 +108,6 @@ export const setAllRemind = () => {
         Number(reminds[slackId][id]["remind_at"]),
         () => {
           const { blocks, title } = createRemindBlocks(reminds[slackId][id]);
-          console.table({ blocks, title, slackId });
           sendMessageWithBlock(slackId, blocks, "リマインド: " + title);
         },
         slackId,

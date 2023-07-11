@@ -1,11 +1,7 @@
-import { BrowserContext, chromium } from "playwright";
-import moment from "moment";
-import { writeJSONFile } from "./fs";
-import { getScheduleDetails } from "./getScheduleDetails";
+import { BrowserContext } from "playwright";
+import { writeJSONFile } from "../util/fs";
+import { saveFile } from "../constants";
 
-const SAVE_FILENAME = "event.json";
-
-moment.locale("ja");
 export const getSchedules = async (
   year: string,
   month: string,
@@ -13,24 +9,18 @@ export const getSchedules = async (
   uid: string,
   context: BrowserContext
 ) => {
-  // Add credentials for Basic auth
   const page = await context.newPage();
-  const navigationPromise = page.waitForNavigation();
-
   const url =
     process.env.CYBOZU_URL1 +
     `ag.cgi?page=ScheduleUserMonth&UID=${uid}&CP=&sp=#date=da.${year}.${month}.${day}`;
-  console.log(url);
+
   let saveData: any = {};
   // スケジュール取得
   await page.goto(url);
 
-  await navigationPromise;
-
   const calender = await page.$$(".eventcell");
 
   for (const one_day of calender) {
-    let date_str = String(year) + "/";
     const date = await one_day.$$(".date");
     let key = "";
     let save_month = "";
@@ -42,7 +32,6 @@ export const getSchedules = async (
       save_date = date.padStart(2, "0");
       key = `${year}/${save_month}`;
     }
-    console.log(key + "/" + save_date);
     // if (key !== year + "/" + month) {
     //   console.log("skip", key + "/" + save_date, year + "/" + month);
     //   continue;
@@ -73,14 +62,6 @@ export const getSchedules = async (
         const [start, end] = time_str.split("-");
         eventData["start"] = start;
         eventData["end"] = end?.trim();
-        const date_start = moment(
-          new Date(key + "/" + save_date + " " + start)
-        ).format("LLLL");
-        const date_end = moment(
-          new Date(key + "/" + save_date + " " + end)
-        ).format("LLLL");
-
-        console.log(date_start, " ~ ", date_end);
       }
 
       // 詳細
@@ -100,15 +81,12 @@ export const getSchedules = async (
       }
       saveData[key][save_date].push(eventData);
     }
-    console.log("---------------------");
   }
   for (const key of Object.keys(saveData)) {
-    console.log(key);
     writeJSONFile(
-      uid + "-" + key.replace("/", "-") + "-" + SAVE_FILENAME,
+      uid + "-" + key.replace("/", "-") + "-" + saveFile.schedules,
       saveData[key]
     );
-    console.table(saveData[key]);
   }
 
   await context.close();

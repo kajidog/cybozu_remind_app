@@ -1,8 +1,12 @@
-import { getHosts, getSelectHost, getTokenByUser } from "./cybozu_user_config";
-import { getScheduleConfig, loadSchedule } from "./schedule";
+import { getSelectedUserInfo, getUserList } from "./csv/cybozu_user_config";
+import { getScheduleConfig } from "./csv/schedule";
+import { getRemind, isSetSchedule } from "./csv/remind";
+import { loadScheduleDetails } from "./csv/schedule_details";
+import { getFormattedDate, getTimeAgo, unixTimestampToDate } from "./util";
+import { createRemindKey } from "./util/remind";
+import { accessoryOptionBlock, selectDate } from "./template";
 import moment from "moment";
-import { createRemindKey, getRemind, isSetSchedule } from "./remind";
-import { loadScheduleDetails } from "./schedule_details";
+import { actionIds } from "./constants";
 moment.locale("ja");
 
 export const sendHomeTab = async (e: any, user: string) => {
@@ -22,37 +26,27 @@ export const sendHomeTab = async (e: any, user: string) => {
 };
 
 export const createSchedule = (slack_id: string) => {
-  const cybozuConfig = getTokenByUser(slack_id);
+  const cybozuConfig = getSelectedUserInfo(slack_id); // 現在選択してるユーザー情報
+  let blocks: any[] = [];
+
+  // ユーザー情報がない
   if (!cybozuConfig?.uid) {
     return [];
   }
-  let blocks: any[] = [];
 
-  // 日付設定
+  // 選択している日付
   const config = getScheduleConfig(slack_id);
-  console.table(config);
-
-  blocks.push({
-    type: "actions",
-    elements: [
-      {
-        type: "datepicker",
-        initial_date: config.selected_date,
-        action_id: "set_selected_date",
-        placeholder: {
-          type: "plain_text",
-          text: "Select a date",
-          emoji: true,
-        },
-      },
-    ],
-  });
   const selected_date = config.selected_date || getFormattedDate();
   const [year, month, date] = selected_date.split("-");
+  // 日付の選択するブロック
+  blocks.push(selectDate(selected_date, actionIds.selected_date));
 
-  // 指定の日付でスケジュールをロード
-  const schedules = loadScheduleDetails(cybozuConfig.uid, year, month, date);
+  // リマインド情報
   const reminds = getRemind(slack_id);
+  // 指定の日付のスケジュールをロード
+
+  const schedules = loadScheduleDetails(cybozuConfig.uid, year, month, date);
+
   (schedules.data[date] || []).forEach((schedule: any, index: number) => {
     const remindKey = createRemindKey(
       cybozuConfig.uid,
@@ -61,17 +55,18 @@ export const createSchedule = (slack_id: string) => {
       date,
       String(index)
     );
+
     const time =
       schedule.start || schedule.end
         ? `${schedule.start || ""}${schedule.end ? "~" + schedule.end : ""} `
         : "設定なし";
-
     const title = schedule.title || "タイトル";
     const remind = isSetSchedule(slack_id, remindKey)
       ? ` :hourglass_flowing_sand: ${moment(
           unixTimestampToDate(reminds[remindKey]["remind_at"])
         ).format("llll")}`
       : "";
+    const optionValue = index + "-" + selected_date + "-" + cybozuConfig.uid;
 
     blocks.push({
       type: "section",
@@ -83,45 +78,17 @@ export const createSchedule = (slack_id: string) => {
       },
       accessory: {
         type: "overflow",
-        action_id: "set_remind",
+        action_id: actionIds.setRemind,
         options: [
-          {
-            text: {
-              type: "plain_text",
-              text: "5分前にリマインド",
-              emoji: true,
-            },
-            value: "5-" + index + "-" + selected_date + "-" + cybozuConfig.uid,
-          },
-          {
-            text: {
-              type: "plain_text",
-              text: "15分前にリマインド",
-              emoji: true,
-            },
-            value: "15-" + index + "-" + selected_date + "-" + cybozuConfig.uid,
-          },
-          {
-            text: {
-              type: "plain_text",
-              text: "30分前にリマインド",
-              emoji: true,
-            },
-            value: "30-" + index + "-" + selected_date + "-" + cybozuConfig.uid,
-          },
-          {
-            text: {
-              type: "plain_text",
-              text: "リマインドを削除",
-              emoji: true,
-            },
-            value:
-              "delete-" + index + "-" + selected_date + "-" + cybozuConfig.uid,
-          },
+          accessoryOptionBlock("5分前リマインド", "5-" + optionValue),
+          accessoryOptionBlock("15分前リマインド", "15-" + optionValue),
+          accessoryOptionBlock("30分前リマインド", "30-" + optionValue),
+          accessoryOptionBlock("リマインドを削除", "delete-" + optionValue),
         ],
       },
     });
 
+    // イベント日時
     const accessory = {
       type: "context",
       elements: [
@@ -132,6 +99,7 @@ export const createSchedule = (slack_id: string) => {
       ] as any[],
     };
 
+    // メンバーと場所
     [
       ["member", ":busts_in_silhouette: "],
       ["institution", ":house_with_garden: "],
@@ -187,6 +155,7 @@ export const createSchedule = (slack_id: string) => {
     });
   });
 
+  // ファイルがない
   if (!schedules.update_at) {
     blocks.push({
       type: "section",
@@ -196,17 +165,7 @@ export const createSchedule = (slack_id: string) => {
       },
     });
   }
-
-  if (blocks.length <= 1) {
-    blocks.push({
-      type: "section",
-      text: {
-        type: "mrkdwn",
-        text: "スケジュールはありません",
-      },
-    });
-  }
-
+  // ファイルがある
   if (schedules.update_at) {
     blocks.push({
       type: "section",
@@ -221,6 +180,18 @@ export const createSchedule = (slack_id: string) => {
       },
     });
   }
+  // スケジュールがない
+  if (blocks.length <= 1) {
+    blocks.push({
+      type: "section",
+      text: {
+        type: "mrkdwn",
+        text: "スケジュールはありません",
+      },
+    });
+  }
+
+  // 更新ぼたん
   blocks.push({
     type: "actions",
     elements: [
@@ -232,7 +203,7 @@ export const createSchedule = (slack_id: string) => {
           emoji: true,
         },
         style: "danger",
-        action_id: "load_cybozu",
+        action_id: actionIds.loadCybozu,
         value:
           cybozuConfig.uid + "-" + (config.selected_date || getFormattedDate()),
       },
@@ -243,7 +214,7 @@ export const createSchedule = (slack_id: string) => {
           text: "リロード",
           emoji: true,
         },
-        action_id: "reload_cybozu",
+        action_id: actionIds.reloadCybozu,
         style: "primary",
         value: "approve",
       },
@@ -251,9 +222,10 @@ export const createSchedule = (slack_id: string) => {
   });
   return blocks;
 };
+
 export const createSelectClientCybozuConfig = (user: string) => {
-  const { name, uid } = getTokenByUser(user);
-  const hosts = mapHosts("*");
+  const { name, uid } = getSelectedUserInfo(user);
+  const hosts = mapUsers("*");
   const menu: { [key: string]: any }[] = [
     {
       type: "section",
@@ -267,37 +239,29 @@ export const createSelectClientCybozuConfig = (user: string) => {
       accessory: {
         type: "overflow",
         options: [
-          {
-            text: {
-              type: "plain_text",
-              text: "サイボウズユーザーを登録",
-              emoji: true,
-            },
-            value: "cybozu_config_edit",
-          },
+          accessoryOptionBlock(
+            `サイボウズユーザーを登録`,
+            actionIds.cybozu_config_edit.add
+          ),
         ],
-        action_id: "menu_select",
+        action_id: actionIds.cybozu_config_edit.actionId,
       },
     },
   ];
 
   if (uid) {
-    menu[0].accessory.options.push({
-      text: {
-        type: "plain_text",
-        text: `:wastebasket: ${name || uid} の設定を削除`,
-        emoji: true,
-      },
-      value: `delete_host`,
-    });
-    menu[0].accessory.options.push({
-      text: {
-        type: "plain_text",
-        text: ":date: 日付指定を解除",
-        emoji: true,
-      },
-      value: "delete_selected_date",
-    });
+    menu[0].accessory.options.push(
+      accessoryOptionBlock(
+        `:wastebasket:設定を削除 ${name || uid}`,
+        actionIds.cybozu_config_edit.delete
+      )
+    );
+    menu[0].accessory.options.push(
+      accessoryOptionBlock(
+        `:date: 日付指定を解除`,
+        actionIds.cybozu_config_edit.deleteSelectDate
+      )
+    );
   }
 
   const temp: { [key: string]: any } = {
@@ -311,7 +275,7 @@ export const createSelectClientCybozuConfig = (user: string) => {
           text: "表示ユーザーを変更",
         },
         options: hosts,
-        action_id: "select_zabbix_host",
+        action_id: actionIds.changeSelectUser,
       },
     ],
   };
@@ -324,9 +288,9 @@ export const createSelectClientCybozuConfig = (user: string) => {
 };
 
 // ドロップダウンリストのアイテム
-const mapHosts = (user: string) => {
-  const hosts = getHosts(user);
-  let arr = Object.entries(hosts).map(([key, value]) => value);
+const mapUsers = (user: string) => {
+  const hosts = getUserList(user);
+  let arr = Object.entries(hosts).map(([_, value]) => value);
 
   // Sort the array by the 'name' property
   arr.sort((a: any, b: any) => a?.name?.localeCompare(b?.name));
@@ -339,37 +303,3 @@ const mapHosts = (user: string) => {
     value: value.uid,
   }));
 };
-
-function getTimeAgo(date: Date): string {
-  const now = new Date();
-  const elapsedTime = now.getTime() - date.getTime(); // 経過時間（ミリ秒）
-
-  const seconds = Math.floor(elapsedTime / 1000); // 経過時間（秒単位）
-  const minutes = Math.floor(seconds / 60); // 経過時間（分単位）
-  const hours = Math.floor(minutes / 60); // 経過時間（時間単位）
-  const days = Math.floor(hours / 24); // 経過時間（日単位）
-
-  if (days > 0) {
-    return `${days}日前 :warning: `;
-  } else if (hours > 0) {
-    return `${hours}時間前`;
-  } else if (minutes > 0) {
-    return `${minutes}分前`;
-  } else {
-    return `${seconds}秒前 :white_check_mark: `;
-  }
-}
-
-function getFormattedDate(): string {
-  const date = new Date();
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-
-  return `${year}-${month}-${day}`;
-}
-
-function unixTimestampToDate(unixTimestamp: number): Date {
-  const milliseconds = unixTimestamp * 1000;
-  return new Date(milliseconds);
-}

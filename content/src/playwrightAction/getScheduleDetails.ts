@@ -1,8 +1,7 @@
-import { BrowserContext, Page, chromium } from "playwright";
-import { writeJSONFile } from "./fs";
+import { Page, chromium } from "playwright";
+import { writeJSONFile } from "../util/fs";
 import { getSchedules } from "./getSchedules";
-
-const SAVE_FILENAME = "event_details.json";
+import { saveFile } from "../constants";
 
 export const getScheduleDetails = async (
   year: string,
@@ -48,6 +47,7 @@ export const getScheduleDetails = async (
 
   await page.goto(url);
 
+  // 月予定のページから今日の情報を取得
   let saveData = await page.evaluate(
     ([targetDate]) => {
       let returnValue: any[] = [];
@@ -80,6 +80,7 @@ export const getScheduleDetails = async (
     [Number(month) + "/" + Number(day)]
   );
 
+  // 詳細（AタグのHREF）へ遷移
   for (const key in saveData) {
     if (saveData[key]["href"]) {
       const details = await getDetails(saveData[key]["href"], page);
@@ -93,17 +94,24 @@ export const getScheduleDetails = async (
   const fileDate =
     year + "-" + month.padStart(2, "0") + "-" + day.padStart(2, "0");
 
-  writeJSONFile(uid + "-" + fileDate + "-" + SAVE_FILENAME, saveData);
+  writeJSONFile(
+    uid + "-" + fileDate + "-" + saveFile.scheduleDetails,
+    saveData
+  );
 
+  // 月でイベントを取得後にブラウザ終了
   getSchedules(year, month, day, uid, context).finally(() => {
     context.close();
     browser.close();
   });
 };
 
+// 詳細を取得
 const getDetails = async (href: string, page: Page) => {
   await page.goto(process.env.CYBOZU_URL1 + href);
-  const details = await page.evaluate(() => {
+
+  // ブラウザ内で詳細を取得してリターン
+  return await page.evaluate(() => {
     const menu = {
       施設: "institution",
       メモ: "memo",
@@ -118,15 +126,18 @@ const getDetails = async (href: string, page: Page) => {
         return { key: "member", value };
       },
     } as any;
-    let returnValue: any = {
-      log: [],
-    };
+    let returnValue: any = {};
+
+    // 詳細のテーブルの行の1番目をもとに判定
     Array.from(document.querySelectorAll("table.scheduleDataView tr")).forEach(
       (trElement) => {
+        // 1番目の値を取得
         const type = (trElement.querySelector("th")?.textContent || "").replace(
           /（.*?）/g,
           ""
         );
+
+        // 1番目の値をもとに処理を変更
         const action = menu[type];
         if (typeof action === "string") {
           returnValue[action] = trElement
@@ -143,5 +154,4 @@ const getDetails = async (href: string, page: Page) => {
 
     return returnValue;
   });
-  return details;
 };

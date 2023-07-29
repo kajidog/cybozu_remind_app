@@ -88,6 +88,4 @@ export const getSchedules = async (
       saveData[key]
     );
   }
-
-  await context.close();
 };

@@ -1,25 +1,46 @@
-import { Page, chromium } from "playwright";
+import { Browser, BrowserContext, Page, chromium } from "playwright";
 import { writeJSONFile } from "../util/fs";
 import { getSchedules } from "./getSchedules";
 import { saveFile } from "../constants";
 
-export const getScheduleDetails = async (
-  year: string,
-  month: string,
-  day: string,
-  uid: string
-) => {
-  const browser = await chromium.launch();
-  const context = await browser.newContext({
-    httpCredentials: {
-      username: process.env.BASIC_USER,
-      password: process.env.BASIC_PASS,
-    },
-  });
+let browser: Browser;
+let context: BrowserContext;
 
-  // Add credentials for Basic auth
-  const page = await context.newPage();
+const createBrowser = async () => {
+  console.log("create browser!");
+  browser = await chromium.launch();
+};
+const createContext = async () => {
+  const action = async () => {
+    context = await browser.newContext({
+      httpCredentials: {
+        username: process.env.BASIC_USER,
+        password: process.env.BASIC_PASS,
+      },
+    });
+  };
 
+  try {
+    await action();
+    return;
+  } catch (error) {
+    await createBrowser();
+    await action();
+    return;
+  }
+};
+const createPage = async () => {
+  try {
+    console.log("create page");
+    return await context.newPage();
+  } catch (error) {
+    console.log("fail context.new page");
+    await createContext();
+    return await context.newPage();
+  }
+};
+
+const doLogin = async (page: Page) => {
   // ログイン処理
   await page.goto(
     process.env.CYBOZU_URL1 +
@@ -37,15 +58,42 @@ export const getScheduleDetails = async (
     "table > tbody > tr:nth-child(8) > td > .vr_loginForm",
     process.env.CYBOZU_PASS
   );
-
   // ログインボタンクリック
   await page.click("table > tbody > tr > td > .vr_hotButton");
+};
+
+const isLogin = async (page: Page, url: string) => {
+  try {
+    await page.goto(url);
+
+    const bodyClass = await page.evaluate(() => document.body.className);
+
+    if (bodyClass !== "login") {
+      return;
+    }
+    await doLogin(page);
+    return await page.goto(url);
+  } catch (error) {
+    await createPage();
+    await doLogin(page);
+    await page.goto(url);
+    return;
+  }
+};
+
+export const getScheduleDetails = async (
+  year: string,
+  month: string,
+  day: string,
+  uid: string
+) => {
+  const page = await createPage();
 
   const url =
     process.env.CYBOZU_URL1 +
     `ag.cgi?page=ScheduleUserMonth&UID=${uid}&CP=&sp=#date=da.${year}.${month}.${day}`;
 
-  await page.goto(url);
+  await isLogin(page, url);
 
   // 月予定のページから今日の情報を取得
   let saveData = await page.evaluate(
@@ -100,10 +148,7 @@ export const getScheduleDetails = async (
   );
 
   // 月でイベントを取得後にブラウザ終了
-  getSchedules(year, month, day, uid, context).finally(() => {
-    context.close();
-    browser.close();
-  });
+  getSchedules(year, month, day, uid, context);
 };
 
 // 詳細を取得

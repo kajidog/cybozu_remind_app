@@ -165,6 +165,20 @@ export const createSchedule = (slack_id: string) => {
       },
     });
   }
+
+  // スケジュールがない
+  console.log("length:", blocks.length);
+
+  if (blocks.length <= 1) {
+    blocks.push({
+      type: "section",
+      text: {
+        type: "mrkdwn",
+        text: "スケジュールはありません",
+      },
+    });
+  }
+
   // ファイルがある
   if (schedules.update_at) {
     blocks.push({
@@ -180,17 +194,6 @@ export const createSchedule = (slack_id: string) => {
       },
     });
   }
-  // スケジュールがない
-  if (blocks.length <= 1) {
-    blocks.push({
-      type: "section",
-      text: {
-        type: "mrkdwn",
-        text: "スケジュールはありません",
-      },
-    });
-  }
-
   // 更新ぼたん
   blocks.push({
     type: "actions",

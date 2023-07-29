@@ -15,8 +15,8 @@ export function extractNumbersFromString(str: string) {
 // DMへメッセージを送信
 export async function sendMessageWithBlock(
   userId: string,
-  blocks: (Block | KnownBlock)[],
-  text: string
+  blocks?: (Block | KnownBlock)[],
+  text?: string
 ) {
   try {
     // ユーザーとのDMのチャンネルIDを取得

@@ -4,12 +4,6 @@ Slackでサイボウズのスケジュールを表示や予定時間の前にリ
 
 ## 使用方法
 
-### 初期設定
-
-取得したいサイボウズのUIDを設定  
-
-<img src="./doc/初期設定.png" width="500" >  
-
 ### スケジュール取得
 
 <img src="./doc/データ表示説明.png" width="500" >  
@@ -18,6 +12,15 @@ Slackでサイボウズのスケジュールを表示や予定時間の前にリ
 
 データが登録されていない・再取得したい場合
  →「データを取得」をクリックで、サイボウズから最新データを取得します。  
+
+### ユーザーを追加
+
+メニューの「サイボウズユーザーを登録」から、取得したいサイボウズのUIDと表示名を設定  
+<img width="500" alt="スクリーンショット 2023-07-19 16 49 20" src="https://github.com/kajidog/cybozu_remind_app/assets/51894304/1ec4e83b-e22a-4acf-888e-53bfd1044dd9">  
+<img width="500" alt="スクリーンショット 2023-07-19 16 47 46" src="https://github.com/kajidog/cybozu_remind_app/assets/51894304/ea17046c-8ae3-443a-a204-bcc65acebddf">  
+
+UIDはサイボウズのプロフィールから確認可能  
+<img width="500" alt="スクリーンショット 2023-07-19 16 46 48" src="https://github.com/kajidog/cybozu_remind_app/assets/51894304/83a54484-3a39-4946-a36e-d256acbe9e10">  
 
 ### リマインド
 

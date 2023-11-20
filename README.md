@@ -1,6 +1,19 @@
 # REMIND_CYBOZU_APP
 
-Slackでサイボウズのスケジュールを表示や予定時間の前にリマインドを設定できます。
+サイボウズのスケジュールをSlack上で表示し、予定時間の前にリマインドを設定できます。
+
+## 使用言語
+
+- docker-compose
+  開発環境
+- Node.js
+  実行環境  
+- playwright
+  サイボウズのスクレイピングに使用
+- Slack Bolt
+  Slackとの連携に使用
+- TypeScript
+  
 
 ## 使用方法
 
